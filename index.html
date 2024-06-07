@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <style>
     body {
-      background-color: #000;
+      background-color: #1A1A1D;
       font-family: 'Roboto', sans-serif;
       color: #fff;
     }
@@ -19,14 +19,14 @@
       max-width: 800px;
       margin: 40px auto;
       padding: 20px;
-      background-color: #111;
+      background-color: #242429;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      box-shadow: 0 0 10px rgba(102, 204, 255, 0.5);
       transition: background-color 0.3s ease;
     }
 
     .chat-container:hover {
-      background-color: #222;
+      background-color: #2E2E33;
     }
 
     .chat-messages {
@@ -50,12 +50,12 @@
     }
 
     .message.assistant {
-      background-color: #FFA500;
+      background-color: #66CCFF;
       color: #000;
     }
 
     .message.user {
-      background-color: #FFD700;
+      background-color: #FFCC00;
       color: #000;
     }
 
@@ -65,13 +65,13 @@
 
     .input-container {
       padding: 20px;
-      background-color: #222;
+      background-color: #2E2E33;
       border-top: 1px solid #444;
       transition: background-color 0.3s ease;
     }
 
     .input-container:hover {
-      background-color: #111;
+      background-color: #242429;
     }
 
     .input-field {
@@ -86,12 +86,12 @@
     }
 
     .input-field:focus {
-      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      box-shadow: 0 0 10px rgba(102, 204, 255, 0.5);
       background-color: #444;
     }
 
     .send-button {
-      background-color: #FFA500;
+      background-color: #66CCFF;
       color: #000;
       padding: 10px 20px;
       border: none;
@@ -101,18 +101,18 @@
     }
 
     .send-button:hover {
-      background-color: #FF8C00;
+      background-color: #33AACC;
     }
 
     .settings-panel {
       padding: 20px;
-      background-color: #222;
+      background-color: #2E2E33;
       border-top: 1px solid #444;
       transition: background-color 0.3s ease;
     }
 
     .settings-panel:hover {
-      background-color: #111;
+      background-color: #242429;
     }
 
     .settings-panel label {
@@ -144,6 +144,13 @@
     .custom-prompt:focus,
     .custom-token:focus {
       background-color: #e7e7e7;
+    }
+
+    @media screen and (max-width: 600px) {
+      .chat-container {
+        max-width: 90%;
+        margin: 20px auto;
+      }
     }
   </style>
 </head>
@@ -180,7 +187,85 @@
   </div>
 
   <script>
-    // JavaScript code remains the same
+    const chatMessages = document.querySelector('.chat-messages');
+    const userInput = document.querySelector('#user-input');
+    const sendButton = document.querySelector('#send-button');
+    const customPrompt = document.querySelector('#custom-prompt');
+    const customToken = document.querySelector('#custom-token');
+
+    let messages = [
+      { role: 'system', content: 'You are a helpful assistant.' }
+    ];
+
+    sendButton.addEventListener('click', async () => {
+      const userInputValue = userInput.value.trim();
+      if (userInputValue !== '') {
+        messages.push({ role: 'user', content: userInputValue });
+        userInput.value = '';
+
+        sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const assistantResponse = await getAssistantResponse(messages);
+        sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+
+        if (assistantResponse) {
+          messages.push({ role: 'assistant', content: assistantResponse });
+          renderChatMessages();
+        } else {
+          console.error('Failed to get a response from the assistant.');
+        }
+      }
+    });
+
+    async function getAssistantResponse(messages) {
+      const url = 'https://api.fireworks.ai/inference/v1/chat/completions';
+      const payload = {
+        model: 'accounts/fireworks/models/qwen2-72b-instruct',
+        max_tokens: 8192,
+        top_p: 1,
+        top_k: 40,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        temperature: 1,
+        messages
+      };
+      const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer JTRQEsG1GBFLEqoy9SJBrTj7svzH13wgkHYt0hRF2lIpxEjS'
+      };
+
+      try {
+        const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
+        const responseData = await response.json();
+        if (responseData.choices && responseData.choices[0].message.content) {
+          return responseData.choices[0].message.content;
+        } else {
+          console.error('No valid response received from the API.');
+          return null;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        return null;
+      }
+    }
+
+    function renderChatMessages() {
+      chatMessages.innerHTML = '';
+      messages.forEach((message) => {
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${message.role}`;
+        if (message.content.includes('```')) {
+          const codeBlock = document.createElement('div');
+          codeBlock.className = 'code-block';
+          codeBlock.innerHTML = `<code>${message.content.replace(/```/g, '')}</code>`;
+          messageElement.appendChild(codeBlock);
+        } else {
+          messageElement.innerHTML = `<span>${message.role.charAt(0).toUpperCase() + message.role.slice(1)}:</span> ${message.content}`;
+        }
+        chatMessages.appendChild(messageElement);
+      });
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
   </script>
 </body>
 </html>
